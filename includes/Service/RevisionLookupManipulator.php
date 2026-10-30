@@ -95,6 +95,33 @@ class RevisionLookupManipulator implements RevisionLookup {
 	}
 
 	/**
+	 * For MediaWiki 1.46 and later.
+	 * @inheritDoc
+	 */
+	public function getKnownLatestRevision( PageIdentity $page, $revId = 0 ) {
+		$title = Title::newFromPageIdentity( $page );
+		$mirror = $this->mirror->getMirror();
+
+		if ( !$revId && $mirror->canMirror( $title, true ) ) {
+			$status = $mirror->getCachedPage( $title );
+			if ( !$status->isOK() ) {
+				throw new RuntimeException( (string)$status );
+			}
+
+			/** @var ?PageInfoResponse $pageInfo */
+			$pageInfo = $status->getValue();
+			if ( $pageInfo === null ) {
+				return false;
+			}
+
+			return new RemoteRevisionRecord( $pageInfo );
+		}
+
+		return $this->revisionLookup->getKnownLatestRevision( $page, $revId );
+	}
+
+	/**
+	 * For MediaWiki 1.45 and earlier.
 	 * @inheritDoc
 	 */
 	public function getKnownCurrentRevision( PageIdentity $page, $revId = 0 ) {
